@@ -93,8 +93,21 @@ class AirSimBridgeModule(key: AirSimKey)(implicit p: Parameters) extends BridgeM
     val hPort = IO(HostPort(new AirSimBridgeTargetIO()))
 
     // Generate some FIFOs to capture tokens...
-    val txfifo = Module(new Queue(UInt(8.W), 128))
-    val rxfifo = Module(new Queue(UInt(8.W), 128))
+    val txfifo = Module(new Queue(UInt(32.W), 32))
+    val rxfifo = Module(new Queue(UInt(32.W), 32))
+
+    // COSIM-CODE
+    // Generate a FIFO to capture time step allocations
+    val rx_ctrl_fifo = Module(new Queue(UInt(8.W), 16))
+
+    // Create counters to track number of cycles elapsed
+    // Initialize number of cycles 
+    val cycleBudget = RegInit(1000.U(32.W))
+
+    // Initialize amount to increment cycle budget by
+    val cycleStep   = RegInit(1000.U(32.W))
+
+    // COSIM-CODE
 
     val target = hPort.hBits.airsimio
     // In general, your BridgeModule will not need to do work every host-cycle. In simple Bridges,
@@ -104,9 +117,20 @@ class AirSimBridgeModule(key: AirSimKey)(implicit p: Parameters) extends BridgeM
     val fire = hPort.toHost.hValid && // We have a valid input token: toHost ~= leaving the transformed RTL
                hPort.fromHost.hReady && // We have space to enqueue a new output token
                txfifo.io.enq.ready      // We have space to capture new TX data
+    // val fire = hPort.toHost.hValid 
     val targetReset = fire & hPort.hBits.reset
     rxfifo.reset := reset.asBool || targetReset
     txfifo.reset := reset.asBool || targetReset
+
+    // Drive fifo signals from AirSimIO
+    txfifo.io.enq.valid := target.port_tx_deq_valid && fire
+    rxfifo.io.deq.ready := target.port_rx_enq_ready && fire
+    txfifo.io.enq.bits  := target.port_tx_deq_bits
+
+    // Drive AirSimIO signals from fifo
+    target.port_rx_enq_valid := rxfifo.io.deq.valid
+    target.port_tx_deq_ready := txfifo.io.enq.ready
+    target.port_rx_enq_bits  := rxfifo.io.deq.bits
 
     hPort.toHost.hReady := fire
     hPort.fromHost.hValid := fire
@@ -116,7 +140,6 @@ class AirSimBridgeModule(key: AirSimKey)(implicit p: Parameters) extends BridgeM
     // with name "out_bits" and out_valid respectively
     genROReg(txfifo.io.deq.bits, "out_bits")
     genROReg(txfifo.io.deq.valid, "out_valid")
-    genROReg(target.top_busy, "top_busy")
 
     // Generate a writeable register, "out_ready", that when written to dequeues
     // a single element in the tx_fifo. Pulsify derives the register back to false
@@ -127,6 +150,20 @@ class AirSimBridgeModule(key: AirSimKey)(implicit p: Parameters) extends BridgeM
     genWOReg(rxfifo.io.enq.bits, "in_bits")
     Pulsify(genWORegInit(rxfifo.io.enq.valid, "in_valid", false.B), pulseLength = 1)
     genROReg(rxfifo.io.enq.ready, "in_ready")
+
+    // COSIM-CODE
+    // Generate registers for reading in time step limits
+    genWOReg(rx_ctrl_fifo.io.enq.bits, "in_ctrl_bits")
+    Pulsify(genWORegInit(rx_ctrl_fifo.io.enq.valid, "in_ctrl_valid", false.B), pulseLength = 1)
+    genROReg(rx_ctrl_fifo.io.enq.ready, "in_ctrl_ready")
+
+    // Generate registers for reading total cycles that have passed
+    genROReg(cycleCount, "cycle_count")
+    genROReg(cycleBudget, "cycle_budget")
+
+    // Generate registers for writing the step amount
+    genWOReg(cycleStep, "cycle_step")
+    // COSIM-CODE
 
     // This method invocation is required to wire up all of the MMIO registers to
     // the simulation control bus (AXI4-lite)

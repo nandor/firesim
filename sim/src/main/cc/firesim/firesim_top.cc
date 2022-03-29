@@ -5,6 +5,7 @@
 // From firesim-lib/src/main/cc/bridges
 #include "bridges/serial.h"
 #include "bridges/uart.h"
+#include "bridges/airsim.h"
 #include "bridges/simplenic.h"
 #include "bridges/blockdev.h"
 #include "bridges/tracerv.h"
@@ -87,6 +88,50 @@ firesim_top_t::firesim_top_t(int argc, char** argv)
     #ifdef UARTBRIDGEMODULE_7_PRESENT
     UARTBRIDGEMODULE_7_substruct_create;
     add_bridge_driver(new uart_t(this, UARTBRIDGEMODULE_7_substruct, 7));
+    #endif
+
+// DOC include start: airsim Bridge Driver Registration
+    // Here we instantiate our driver once for each bridge in the target
+    // Golden Gate emits a <BridgeModuleClassName>_<id>_PRESENT macro for each instance
+    // which you may use to conditionally instantiate your driver
+    #ifdef AIRSIMBRIDGEMODULE_0_PRESENT
+    // Create an instance of the constructor argument (this has all of
+    // addresses of the BridgeModule's memory mapped registers)
+    AIRSIMBRIDGEMODULE_0_substruct_create;
+    // Instantiate the driver; register it in the main simulation class
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_0_substruct, 0));
+    #endif
+
+    // Repeat the code above with modified indices as many times as necessary
+    // to support the maximum expected number of bridge instances
+    #ifdef AIRSIMBRIDGEMODULE_1_PRESENT
+    AIRSIMBRIDGEMODULE_1_substruct_create;
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_1_substruct, 1));
+    #endif
+// DOC include end: airsim Bridge Driver Registration
+    #ifdef AIRSIMBRIDGEMODULE_2_PRESENT
+    AIRSIMBRIDGEMODULE_2_substruct_create;
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_2_substruct, 2));
+    #endif
+    #ifdef AIRSIMBRIDGEMODULE_3_PRESENT
+    AIRSIMBRIDGEMODULE_3_substruct_create;
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_3_substruct, 3));
+    #endif
+    #ifdef AIRSIMBRIDGEMODULE_4_PRESENT
+    AIRSIMBRIDGEMODULE_4_substruct_create;
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_4_substruct, 4));
+    #endif
+    #ifdef AIRSIMBRIDGEMODULE_5_PRESENT
+    AIRSIMBRIDGEMODULE_5_substruct_create;
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_5_substruct, 5));
+    #endif
+    #ifdef AIRSIMBRIDGEMODULE_6_PRESENT
+    AIRSIMBRIDGEMODULE_6_substruct_create;
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_6_substruct, 6));
+    #endif
+    #ifdef AIRSIMBRIDGEMODULE_7_PRESENT
+    AIRSIMBRIDGEMODULE_7_substruct_create;
+    add_bridge_driver(new airsim_t(this, AIRSIMBRIDGEMODULE_7_substruct, 7));
     #endif
 
     #ifdef FASEDMEMORYTIMINGMODEL_0
