@@ -347,7 +347,7 @@ class EmitFAMEAnnotations(fileName: String) extends firrtl.Transform {
     val targetDir = state.annotations.collectFirst { case TargetDirAnnotation(dir) => dir }
     val dirName = targetDir.getOrElse(".")
     val outputFile = new java.io.PrintWriter(s"${dirName}/${fileName}")
-    val fameAnnos = state.annotations.collect { case fa: FAMEAnnotation => fa }
+    val fameAnnos = state.annotations
     outputFile.write(JsonProtocol.serialize(fameAnnos))
     outputFile.close()
     state

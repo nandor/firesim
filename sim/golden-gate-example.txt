@@ -1,0 +1,8 @@
+runMain midas.stage.GoldenGateMain
+  -i generated-src/f1/ShiftRegister-NoConfig-HostDebugFeatures_DefaultF1Config/firesim.midasexamples.ShiftRegister.NoConfig.fir
+  -td generated-src/f1/ShiftRegister-NoConfig-HostDebugFeatures_DefaultF1Config
+  -faf generated-src/f1/ShiftRegister-NoConfig-HostDebugFeatures_DefaultF1Config/firesim.midasexamples.ShiftRegister.NoConfig.anno.json
+  -ggcp firesim.midasexamples
+  -ggcs HostDebugFeatures_DefaultF1Config
+  --output-filename-base FireSim-generated
+  --no-dedup

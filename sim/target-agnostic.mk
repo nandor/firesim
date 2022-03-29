@@ -10,6 +10,8 @@
 # - compiling meta-simulators (phony: verilator, vcs, verilator-debug, vcs-debug)
 #
 
+useCIRCT ?= 1
+
 # The prefix used for all Golden Gate-generated files
 BASE_FILE_NAME ?=
 
@@ -85,6 +87,14 @@ $(simulator_verilog).intermediate: $(FIRRTL_FILE) $(ANNO_FILE) $(SCALA_BUILDTOOL
 		--output-filename-base $(BASE_FILE_NAME) \
 		--no-dedup \
 	)
+ifeq "$(useCIRCT)" "1"
+	@echo "Using rhodium to transform target"
+	firtool $(FIRRTL_FILE) --annotation-file $(ANNO_FILE) --ir-fir -o $(GENERATED_DIR)/rhodium_in.mlir
+	rhodium --generator-path=$(firesim_base_dir)/run-platform-shim-elab.sh $(GENERATED_DIR)/rhodium_in.mlir -o $(GENERATED_DIR)/rhodium_out.mlir
+	mv $(simulator_verilog) $(GENERATED_DIR)/$(BASE_FILE_NAME).sfc.sv
+	firtool $(GENERATED_DIR)/rhodium_out.mlir -o $(GENERATED_DIR)/$(BASE_FILE_NAME).mfc.sv
+	cp $(GENERATED_DIR)/$(BASE_FILE_NAME).mfc.sv $(simulator_verilog)
+endif
 	grep -sh ^ $(GENERATED_DIR)/firrtl_black_box_resource_files.f | \
 	xargs cat >> $(simulator_verilog) # Append blackboxes to FPGA wrapper, if any
 

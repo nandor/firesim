@@ -108,6 +108,7 @@ private[midas] class MidasTransforms extends Transform {
       passes.ResolveKinds,
       new fame.EmitAndWrapRAMModels,
       new EmitFirrtl("post-gen-sram-models.fir"),
+      new fame.EmitFAMEAnnotations("post-gen-sram-models.json"),
       new ResolveAndCheck,
       new SimulationMapping(state.circuit.main),
       xilinx.HostSpecialization,
