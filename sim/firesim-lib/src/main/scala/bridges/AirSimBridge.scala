@@ -102,11 +102,13 @@ class AirSimBridgeModule(key: AirSimKey)(implicit p: Parameters) extends BridgeM
 
     // Create counters to track number of cycles elapsed
     // Initialize number of cycles 
-    val cycleBudget = RegInit(1000.U(32.W))
+    val cycleBudget = RegInit(0.U(32.W))
 
     // Initialize amount to increment cycle budget by
     val cycleStep   = RegInit(1000.U(32.W))
 
+    // can add to budget every cycle
+    rx_ctrl_fifo.io.deq.ready := true.B;
     // COSIM-CODE
 
     val target = hPort.hBits.airsimio
@@ -116,11 +118,30 @@ class AirSimBridgeModule(key: AirSimKey)(implicit p: Parameters) extends BridgeM
     // output token
     val fire = hPort.toHost.hValid && // We have a valid input token: toHost ~= leaving the transformed RTL
                hPort.fromHost.hReady && // We have space to enqueue a new output token
-               txfifo.io.enq.ready      // We have space to capture new TX data
-    // val fire = hPort.toHost.hValid 
+               txfifo.io.enq.ready  &&    // We have space to capture new TX data
+               (cycleBudget > 0.U(32.W)) // still have cycles left in the budget
+
     val targetReset = fire & hPort.hBits.reset
     rxfifo.reset := reset.asBool || targetReset
     txfifo.reset := reset.asBool || targetReset
+
+    
+
+    // COSIM-CODE
+    // Add to the cycles the tool is permitted to run forward
+    when(rx_ctrl_fifo.io.deq.valid) {
+        cycleBudget := cycleBudget + cycleStep
+    }  .elsewhen(fire) {
+        cycleBudget := cycleBudget - 1.U(32.W)
+    } .otherwise {
+        cycleBudget := cycleBudget
+    }
+
+    rx_ctrl_fifo.reset := reset.asBool || targetReset
+
+    // Count total elapsed cycles
+    val (cycleCount, testWrap) = Counter(fire, 65535 * 256)
+    // COSIM-CODE
 
     // Drive fifo signals from AirSimIO
     txfifo.io.enq.valid := target.port_tx_deq_valid && fire
