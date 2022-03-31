@@ -1,22 +1,22 @@
-.. _meta-simulation:
+.. _metasimulation:
 
 Debugging & Testing with Metasimulation
 =========================================
 
 When we speak of RTL simulation in FireSim, we are generally referring to
-_meta-simulation: simulating the FireSim simulator's RTL, typically using VCS or
+`metasimulation`: simulating the FireSim simulator's RTL, typically using VCS or
 Verilator. In contrast, we we'll refer to native simulation of the target's RTL
-as target-level simulation. Target-level simulation in Chipyard is described at length
+as `target-level` simulation. Target-level simulation in Chipyard is described at length
 `here <https://chipyard.readthedocs.io/en/latest/Simulation/Software-RTL-Simulation.html>`_.
 
 Meta-simulation is the most productive way to catch bugs
 before generating an AGFI, and a means for reproducing bugs seen on the FPGA.
-By default, meta-simulation uses an abstract but fast model of the host: the
+By default, metasimulation uses an abstract but fast model of the host: the
 FPGA's DRAM controllers are modeled with DRAMSim2, the PCI-E subsystem is not
 simulated, instead the driver presents DMA and MMIO traffic directly via
 verilog DPI. Since FireSim simulations are robust against timing differences
 across hosts, target behavior observed in an FPGA-hosted simulation should be
-exactly reproducible in a meta-simulation.
+exactly reproducible in a metasimulation.
 
 Generally, meta-simulators only slightly slower than target-level
 ones. This illustrated in the chart below.

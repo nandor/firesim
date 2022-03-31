@@ -10,7 +10,7 @@ project passed to Vivado, and includes exact RTL models of the host memory
 controllers and PCI-E subsystem used on the FPGA.  Note, since FPGA-level
 metasimulation should generally not be deployed by users, when we refer to
 metasimulation in absence of the FPGA-level qualifier we mean the faster form
-described in :ref:`Debugging & Testing with Metasimulation<meta-simulation>`
+described in :ref:`Debugging & Testing with Metasimulation<metasimulation>`
 
 FPGA-level metasimulations run out of ``firesim/sim``, and consist of two components:
 
