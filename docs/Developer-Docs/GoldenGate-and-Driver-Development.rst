@@ -1,6 +1,8 @@
 Compiler & Driver Development
 =======================================================
 
+.. _Scala Integration Tests:
+
 Integration Tests
 +++++++++++++++++
 
@@ -8,7 +10,7 @@ These are ``ScalaTests`` that call out to FireSim's Makefiles. These
 constitute the bulk of FireSim's tests for Target, Compiler, and Driver side
 features. Each of these tests proceeds as follows:
 
-#. Elaborate a small Chisel target design that excercises a single feature (e.g., printf synthesis)
+#. Elaborate a small Chisel target design that exercises a single feature (e.g., printf synthesis)
 #. Compile the design with GoldenGate  
 #. Compile metasimulator using a target-specific driver and the Golden Gate-generated collateral
 #. Run metasimulation with provided arguments (possibly multiple times)
@@ -29,7 +31,7 @@ These tests may be run from the SBT console continuously, and SBT will rerun
 them on Scala changes (but not driver changes). Out of ``sim/``::
 
    # Launch the SBT console into the firesim subproject
-   # NB: omitting TARGET_PROJECT will put you in the firechip subproject instead
+   # NB: omitting TARGET_PROJECT will put you in the FireChip subproject instead
    make TARGET_PROJECT=midasexamples sbt
 
    # Compile the Scala test sources (optional, to enable tab completion)
@@ -78,16 +80,16 @@ Synthesizable Unit Tests
 ++++++++++++++++++++++++
 
 These are derived from Rocket-Chip's synthesizable unit test library and are
-used to test smaller, standalone Chisel modules.
+used to test smaller, stand-alone Chisel modules.
 
-Synthesizable unittests may be run out of ``sim/`` as follows::
+Synthesizable unit tests may be run out of ``sim/`` as follows::
    # Run default tests without waves
    $ make run-midas-unittests
    
    # Run default suite with waves
    $ make run-midas-unittests-debug
 
-   # Run default suite under verilator
+   # Run default suite under Verilator
    $ make run-midas-unittests  EMUL=verilator
 
    # Run a different suite (registered under class name TimeOutCheck)
@@ -101,7 +103,7 @@ Key Files & Locations
 ---------------------
 
 - `sim/midas/src/main/scala/midas/SynthUnitTests.scala <https://github.com/firesim/firesim/blob/main/sim/midas/src/main/scala/midas/SynthUnitTests.scala>`_
-   Synthesizable unittest modules are registered here.
+   Synthesizable unit test modules are registered here.
 - `sim/midas/src/main/cc/unittest/Makefrag: <https://github.com/firesim/firesim/blob/main/sim/midas/src/main/cc/unittest/Makefrag>`_
    Make recipes for building and running the tests.
 - `sim/firesim-lib/src/test/scala/TestSuiteCommon.scala <https://github.com/firesim/firesim/blob/main/sim/firesim-lib/src/test/scala/TestSuiteCommon.scala>`_
@@ -134,7 +136,7 @@ targetUtils scala tests can be run out of ``sim/`` as follows::
    # Run all scala tests under the ``targetutils`` subproject
    sbt:midas-targetutils> test
 
-Golden Gate (formely midas) scala tests can be run by setting the scala project
+Golden Gate (formerly midas) scala tests can be run by setting the scala project
 to ``midas``, as in step 2 above.
 
 Key Files & Locations

@@ -4,7 +4,7 @@ Complete FPGA Metasimulation
 Generally speaking, users will only ever need to use conventional
 metasimulation (formerly, MIDAS-level simulation). However, when bringing up a
 new FPGA platform, or making changes to an existing one, doing a complete
-presynthesis RTL simulation of the FPGA project (which we will refer to as
+pre-synthesis RTL simulation of the FPGA project (which we will refer to as
 FPGA-level metasimulation) may be required. This will simulate the entire RTL
 project passed to Vivado, and includes exact RTL models of the host memory
 controllers and PCI-E subsystem used on the FPGA.  Note, since FPGA-level
