@@ -19,6 +19,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <deque>
+
 #define ROBOTICS_COSIM_BUFSIZE 1024
 // COSIM-CODE
 
@@ -43,48 +45,6 @@
 // all-caps, suffixed with "_struct" and "_struct_guard" respectively.
 
 #ifdef AIRSIMBRIDGEMODULE_struct_guard
-class airsim_t: public bridge_driver_t
-{
-    public:
-        airsim_t(simif_t* sim, AIRSIMBRIDGEMODULE_struct * mmio_addrs, int airsimno);
-        ~airsim_t();
-        virtual void tick();
-        // Our AIRSIM bridge's initialzation and teardown procedures don't
-        // require interaction with the FPGA (i.e., MMIO), and so we don't need
-        // to define init and finish methods (we can do everything in the
-        // ctor/dtor)
-        void connect_synchronizer();
-        void process_packet();
-        void grant_cycles();
-        void report_cycles();
-        void set_step_size(uint32_t step_size);
-        virtual void init() {};
-        virtual void finish() {};
-        // Our AIRSIM bridge never calls for the simulation to terminate
-        virtual bool terminate() { return false; }
-        // ... and thus, never returns a non-zero exit code
-        virtual int exit_code() { return 0; }
-
-    private:
-        AIRSIMBRIDGEMODULE_struct * mmio_addrs;
-        serial_data_t<uint32_t> data;
-
-        int inputfd;
-        int outputfd;
-        int loggingfd;
-
-        // COSIM-CODE
-        int sockfd, portno, n;
-        struct sockaddr_in serveraddr;
-        struct hostent *server;
-        char *hostname;
-        char buf[ROBOTICS_COSIM_BUFSIZE];
-        // COSIM-CODE
-
-        void send();
-        void recv();
-};
-
 class cosim_packet_t
 {
     public:
@@ -102,6 +62,59 @@ class cosim_packet_t
         uint32_t num_bytes;
         uint32_t * data;
 
+};
+
+class airsim_t: public bridge_driver_t
+{
+    public:
+        airsim_t(simif_t* sim, AIRSIMBRIDGEMODULE_struct * mmio_addrs, int airsimno);
+        ~airsim_t();
+        virtual void tick();
+        // Our AIRSIM bridge's initialzation and teardown procedures don't
+        // require interaction with the FPGA (i.e., MMIO), and so we don't need
+        // to define init and finish methods (we can do everything in the
+        // ctor/dtor)
+        void connect_synchronizer();
+        void process_tcp_packet();
+        void enqueue_firesim_data();
+        void schedule_firesim_data();
+        bool read_firesim_packet(cosim_packet_t * packet);
+        void grant_cycles();
+        void report_cycles();
+        void set_step_size(uint32_t step_size);
+        virtual void init() {};
+        virtual void finish() {};
+        // Our AIRSIM bridge never calls for the simulation to terminate
+        virtual bool terminate() { return false; }
+        // ... and thus, never returns a non-zero exit code
+        virtual int exit_code() { return 0; }
+
+        AIRSIMBRIDGEMODULE_struct * mmio_addrs;
+        serial_data_t<uint32_t> data;
+
+        int inputfd;
+        int outputfd;
+        int loggingfd;
+
+        // COSIM-CODE
+        int sync_sockfd, data_sockfd, sync_portno, data_portno, n;
+        struct sockaddr_in sync_serveraddr;
+        struct sockaddr_in data_serveraddr;
+        struct hostent *server;
+        char *hostname;
+        char buf[ROBOTICS_COSIM_BUFSIZE];
+    
+        pthread_t tcp_thread;
+        
+        std::deque<uint32_t> fsim_rxdata;
+        std::deque<uint32_t> fsim_txdata;
+        std::deque<uint32_t> tcp_sync_rxdata;
+        std::deque<uint32_t> tcp_data_rxdata;
+        std::deque<uint32_t> tcp_txdata;
+        // COSIM-CODE
+
+        void send();
+        void recv();
 };
 
 #endif // AIRSIMBRIDGEMODULE_struct_guard
