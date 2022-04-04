@@ -22,6 +22,7 @@
 
 int count = 0;
 int thread_count = 0;
+std::mutex m;
 
 // COSIM-CODE
 // Add these functions due to overloading in the uart class
@@ -32,6 +33,11 @@ ssize_t net_write(int fd, const void *buf, size_t count)
 
 ssize_t net_read(int fd, void *buf, size_t count)
 {
+    // int k = 0;
+    // for(in i = 0; i < count; i++) {
+
+    // }
+    // return k;
     return recv(fd, buf, count, 0);
 }
 // COSIM-CODE
@@ -51,58 +57,87 @@ void * queue_func(void * arg){
     FILE * rxfile;
 
 
-    printf("[AirSim Driver Thread]: Entered thread\n");
+    // printf("[AirSim Driver Thread]: Entered thread\n");
 
     rxfile = fopen("/home/centos/bridge_rxdump.txt", "w");
     txfile = fopen("/home/centos/bridge_txdump.txt", "w");
     while(true) {
         thread_count++;
         if(thread_count > 50000) {
-            printf("[AIRSIM DRIVER THREAD]: Thread heartbeat\n");
+            // printf("[AIRSIM DRIVER THREAD]: Thread heartbeat\n");
             thread_count = 0;
         }
         bzero(sim->buf, ROBOTICS_COSIM_BUFSIZE);
+        //usleep(1);
         n = net_read(sim->sync_sockfd, sim->buf, 4);
         if(n > 0) {
             cmd = ((uint32_t *) sim->buf)[0];
-            printf("[AIRSIM DRIVER THREAD]: Got cmd in multithreading: 0x%x, %d\n", cmd, n);
-            if(cmd < 0x80)
-                printf("[AIRSIM DRIVER THREAD]: Got data cmd in multithreading: 0x%x\n", cmd);
+            // printf("[AIRSIM DRIVER THREAD]: Got cmd in multithreading: 0x%x, %d\n", cmd, n);
+            //usleep(1);
+            // if(cmd < 0x80)
+                // printf("[AIRSIM DRIVER THREAD]: Got data cmd in multithreading: 0x%x\n", cmd);
             curr_q = (cmd >= 0x80) ? &(sim->tcp_sync_rxdata) : &(sim->tcp_data_rxdata);
+            m.lock();
             curr_q->push_back(cmd);
+            m.unlock();
             fprintf(rxfile, "%d\n", cmd);
             
             //printf("[AIRSIM DRIVER THREAD]: wrote to file\n");
             // printf("[AirSim Driver Thread]: Pushed word 0x%x\n", cmd);
 
-            while(!net_read(sim->sync_sockfd, sim->buf, 4));
+            uint32_t i = 1;
+            while(!net_read(sim->sync_sockfd, sim->buf, 4))
+            {
+                usleep(i);
+                i = i * 2;
+            }
             num_bytes = ((uint32_t *) sim->buf)[0];
-            printf("[AIRSIM DRIVER THREAD]: Got num_bytes in multithreading: 0x%x, %d\n", num_bytes , n);
+            // printf("[AIRSIM DRIVER THREAD]: Got num_bytes in multithreading: 0x%x, %d\n", num_bytes , n);
+            m.lock();
             curr_q->push_back(num_bytes);
+            m.unlock();
             fprintf(rxfile, "%d\n", num_bytes);
             // printf("[AirSim Driver Thread]: Pushed word 0x%x\n", num_bytes);
 
             if(num_bytes > 0)
             {
-                while(!net_read(sim->sync_sockfd, sim->buf, num_bytes));
+                //usleep(1);
+                i = 1;
+                while(!net_read(sim->sync_sockfd, sim->buf, num_bytes))
+                {
+                    usleep(i);
+                    i = i * 2;
+                }
+                //usleep(1);
                 for(int i = 0; i < num_bytes / 4; i++)
                 {
+                    m.lock();
                     curr_q->push_back(((uint32_t *) sim->buf)[i]);
-                    printf("[AIRSIM DRIVER THREAD]: Got datum in multithreading: 0x%x\n", ((uint32_t *) sim->buf)[i]);
+                    m.unlock();
+                    // printf("[AIRSIM DRIVER THREAD]: Got datum in multithreading: 0x%x\n", ((uint32_t *) sim->buf)[i]);
                     fprintf(rxfile, "%d\n", ((uint32_t *) sim->buf)[i]);
             // printf("[AirSim Driver Thread]: Pushed word 0x%x\n", num_bytes);
                     // printf("[AirSim Driver Thread]: Pushed word 0x%x\n", ((uint32_t *) sim->buf)[i]);
                 }
             }
-            printf("[AIRSIM DRIVER THREAD]: Exiting RX task\n");
+            // printf("[AIRSIM DRIVER THREAD]: Exiting RX task\n");
         }
         if(sim->tcp_txdata.size() > 0){
+            //usleep(1);
+            m.lock();
             cmd = sim->tcp_txdata.front();
             sim->tcp_txdata.pop_front();
-            printf("[Airsim Driver Thread]: Got cmd from main thread: 0x%x\n", cmd);
+            m.unlock();
+            // printf("[Airsim Driver Thread]: Got cmd from main thread: 0x%x\n", cmd);
 
 
-            while(sim->tcp_txdata.size() == 0);
+            uint32_t i = 1;
+            while(sim->tcp_txdata.size() == 0)
+            {
+                usleep(i);
+                i = i * 2;
+            }
+            m.lock();
             num_bytes = sim->tcp_txdata.front();
             sim->tcp_txdata.pop_front();
 
@@ -110,6 +145,7 @@ void * queue_func(void * arg){
                 sim->buf[i] = sim->tcp_txdata.front();
                 sim->tcp_txdata.pop_front(); 
             }
+            m.unlock();
 
             if(num_bytes == 0){
                 packet.init(cmd, num_bytes, NULL);
@@ -123,13 +159,13 @@ void * queue_func(void * arg){
             for(int i = 0; i < num_bytes / 4; i++) {
                 fprintf(txfile, "%d\n", packet.data[i]);
             }
-            printf("[AIRSIM DRIVER THREAD]: Exiting TX task\n");
+            // printf("[AIRSIM DRIVER THREAD]: Exiting TX task\n");
         }
     }
 }
 airsim_t::airsim_t(simif_t *sim, AIRSIMBRIDGEMODULE_struct *mmio_addrs, int airsimno) : bridge_driver_t(sim)
 {
-    printf("[AIRSIM DRIVER] Initiated bridge driver!\n");
+    // printf("[AIRSIM DRIVER] Initiated bridge driver!\n");
     this->mmio_addrs = mmio_addrs;
     this->loggingfd = 0; // unused
     this->connect_synchronizer();
@@ -219,35 +255,54 @@ void airsim_t::process_tcp_packet()
     cosim_packet_t packet;
 
     if (this->tcp_sync_rxdata.size() > 0) {
+        m.lock();
         cmd = this->tcp_sync_rxdata.front();
         this->tcp_sync_rxdata.pop_front();
-        printf("[Airsim Driver]: Got cmd 0x%x\n", cmd);
+        m.unlock();
+        // printf("[Airsim Driver]: Got cmd 0x%x\n", cmd);
 
+        //usleep(1);
+        uint32_t i = 1;
         while(this->tcp_sync_rxdata.size() == 0)
         {
-            printf("Size: %d\n", this->tcp_sync_rxdata.size());
+            usleep(i);
+            i = i * 2;
         }
+        m.lock();
         num_bytes = this->tcp_sync_rxdata.front();
         this->tcp_sync_rxdata.pop_front();
-        printf("[Airsim Driver]: Got num bytes 0x%d\n", num_bytes);
+        m.unlock();
+        // printf("[Airsim Driver]: Got num bytes 0x%d\n", num_bytes);
 
+        i = 1;
+        while(this->tcp_sync_rxdata.size() < num_bytes/4);
+        {
+            usleep(i);
+            i = i * 2;
+        }
+        m.lock();
         for(int i = 0; i < num_bytes/4; i++){
             buf[i] = this->tcp_sync_rxdata.front();
             this->tcp_sync_rxdata.pop_front(); 
-            printf("[Airsim Driver]: Got data %d: 0x%d\n",i, buf[i]);
+            // printf("[Airsim Driver]: Got data %d: 0x%d\n",i, buf[i]);
         }
+        m.unlock();
 
         if(num_bytes == 0){
             packet.init(cmd, num_bytes, NULL);
         } else {
             packet.init(cmd, num_bytes, (char *) buf);
         }
-        printf("[AirSim Driver]: Got packet: ");
-        packet.print();
+        // printf("[AirSim Driver]: Got packet: ");
+        // packet.print();
         switch (packet.cmd & 0xFF)
         {
         case CS_GRANT_TOKEN:
+            // printf("[AirSim Driver]: Got Sync Packet\n");
             this->grant_cycles();
+            // printf("[AirSim Driver]: Reporting Stalls\n");
+            this->report_stall();
+            // printf("[AirSim Driver]: Reported Stalls\n");
             break;
         case CS_REQ_CYCLES:
             this->report_cycles();
@@ -304,8 +359,10 @@ void airsim_t::enqueue_firesim_data()
    do {
        this->recv();
        if(data.out.valid) {
+            m.lock();
            this->fsim_rxdata.push_back(data.out.bits);
-           printf("[AIRSIM CLIENT]: ENQUEUEING PACKET -- 0x%x\n", data.out.bits);
+            m.unlock();
+        //    printf("[AIRSIM CLIENT]: ENQUEUEING PACKET -- 0x%x\n", data.out.bits);
        } else {
            break;
        }
@@ -319,26 +376,34 @@ bool airsim_t::read_firesim_packet(cosim_packet_t * packet)
     uint32_t buf [ROBOTICS_COSIM_BUFSIZE];
     if (this->fsim_rxdata.size() >= 2) {
         // Get the cmd
+        m.lock();
         cmd = this->fsim_rxdata.front();
         this->fsim_rxdata.pop_front();
+        m.unlock();
         // Check the remaining entry count
         num_bytes = this->fsim_rxdata.front();
         // If there's a full packet, pop the whole thing off
         if(num_bytes == 0) {
+            m.lock();
             this->fsim_rxdata.pop_front();
             packet->init(cmd, num_bytes, NULL);
+            m.unlock();
             return true;
         } else if(this->fsim_rxdata.size() >= (num_bytes/4) + 1) {
+            m.lock();
             this->fsim_rxdata.pop_front();
             for( int i = 0; i < num_bytes/4; i++ ){
                 buf[i] = this->fsim_rxdata.front();
                 this->fsim_rxdata.pop_front();
             }
+            m.unlock();
             packet->init(cmd, num_bytes, (char *) buf);
             return true;
         // Otherwise, return the command
         } else {
+            m.lock();
             this->fsim_rxdata.push_front(cmd);
+            m.unlock();
             return false;
         }
     }
@@ -360,14 +425,35 @@ void airsim_t::recv()
     if (data.out.valid)
     {
         data.out.bits = read(this->mmio_addrs->out_bits);
-        printf("[AirSim Driver]: Got bytes %x\n", data.out.bits);
+        // printf("[AirSim Driver]: Got bytes %x\n", data.out.bits);
         write(this->mmio_addrs->out_ready, 1);
     }
 }
 
+void airsim_t::report_stall()
+{
+    cosim_packet_t response;
+    // uint32_t buf[ROBOTICS_COSIM_BUFSIZE];
+
+    while(!read(this->mmio_addrs->cycle_budget));
+
+    response.init(CS_RSP_STALL, 0, NULL);
+    // response.encode(this->buf);
+    // printf("[AirSim Driver]: Sending cycles packet: ");
+    // response.print();
+    //net_write(this->sync_sockfd, this->buf, response.num_bytes + 8);
+    m.lock();
+    this->tcp_txdata.push_back(response.cmd);
+    this->tcp_txdata.push_back(response.num_bytes);
+    for(int i = 0; i < response.num_bytes/4; i++) {
+        this->tcp_txdata.push_back(response.data[i]);
+    }
+    m.unlock();
+}
+
 void airsim_t::grant_cycles()
 {
-    printf("[AirSim Driver]: Granting Cycle\n");
+    // printf("[AirSim Driver]: Granting Cycle\n");
     write(this->mmio_addrs->in_ctrl_bits, 1);
     write(this->mmio_addrs->in_ctrl_valid, true);
 }
@@ -381,27 +467,31 @@ void airsim_t::report_cycles()
 
     response.init(CS_RSP_CYCLES, 4, (char *) &cycles);
     // response.encode(this->buf);
-    printf("[AirSim Driver]: Sending cycles packet: ");
-    response.print();
+    // printf("[AirSim Driver]: Sending cycles packet: ");
+    // response.print();
     //net_write(this->sync_sockfd, this->buf, response.num_bytes + 8);
+    m.lock();
     this->tcp_txdata.push_back(response.cmd);
     this->tcp_txdata.push_back(response.num_bytes);
     for(int i = 0; i < response.num_bytes/4; i++) {
         this->tcp_txdata.push_back(response.data[i]);
     }
+    m.unlock();
 }
 
 void airsim_t::schedule_firesim_data() {
     while(this->tcp_data_rxdata.size() > 0) {
-        printf("[AIRSIM DRIVER]: Scheduling firesim packet -- 0x%x\n", this->tcp_data_rxdata.front());
+        // printf("[AIRSIM DRIVER]: Scheduling firesim packet -- 0x%x\n", this->tcp_data_rxdata.front());
+        m.lock();
         this->fsim_txdata.push_back(this->tcp_data_rxdata.front());
         this->tcp_data_rxdata.pop_front();
+        m.unlock();
     }
 }
 
 void airsim_t::set_step_size(uint32_t step_size)
 {
-    printf("[AirSim Driver]: Setting step size to %d!\n", step_size);
+    // printf("[AirSim Driver]: Setting step size to %d!\n", step_size);
     write(this->mmio_addrs->cycle_step, step_size);
 }
 
@@ -422,19 +512,24 @@ void airsim_t::tick()
     this->enqueue_firesim_data();
     this->schedule_firesim_data();
     if(this->read_firesim_packet(&packet)) {
+        m.lock();
         this->tcp_txdata.push_back(packet.cmd);
         this->tcp_txdata.push_back(packet.num_bytes);
         for(int i = 0; i < packet.num_bytes/4; i++) {
             this->tcp_txdata.push_back(packet.data[i]);
         }
+        m.unlock();
     }
     while (this->fsim_txdata.size() > 0) {
+        m.lock();
         data.in.bits = this->fsim_txdata.front();
         this->send();
         if(data.in.ready) {
-            printf("[AIRSIM DRIVER]: Transmitting firesim packet -- 0x%x\n", data.in.bits);
+            // printf("[AIRSIM DRIVER]: Transmitting firesim packet -- 0x%x\n", data.in.bits);
             this->fsim_txdata.pop_front();
+            m.unlock();
         } else {
+            m.unlock();
             break;
         }
     }

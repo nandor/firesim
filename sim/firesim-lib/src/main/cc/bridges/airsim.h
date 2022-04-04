@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include <deque>
+#include <mutex>
 
 #define ROBOTICS_COSIM_BUFSIZE 1024
 // COSIM-CODE
@@ -29,6 +30,7 @@
 #define CS_REQ_CYCLES  0x81
 #define CS_RSP_CYCLES  0x82
 #define CS_DEFINE_STEP 0x83
+#define CS_RSP_STALL   0x84
 
 // Data Commands
 #define CS_REQ_WAYPOINT 0x01
@@ -81,6 +83,7 @@ class airsim_t: public bridge_driver_t
         bool read_firesim_packet(cosim_packet_t * packet);
         void grant_cycles();
         void report_cycles();
+        void report_stall();
         void set_step_size(uint32_t step_size);
         virtual void init() {};
         virtual void finish() {};
