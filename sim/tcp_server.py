@@ -151,6 +151,28 @@ class Synchronizer:
         self.txqueue = []
         self.data_rxqueue = []
         self.sync_rxqueue = []
+
+        print("Starting test code")
+        if len(sys.argv) > 1:
+            airsim_ip = sys.argv[1]
+            print("Will connect to {}".format(airsim_ip))
+        else:
+            airsim_ip = "54.158.237.240"
+
+        # connect to the AirSim simulator
+        print("Connecting to server")
+        self.client = airsim.MultirotorClient(ip=airsim_ip)
+        self.client.confirmConnection()
+        self.client.enableApiControl(True)
+        print("Connected to server")
+        state = self.client.getMultirotorState()
+
+        # print("Taking off...")
+        # client.armDisarm(True)
+        # client.takeoffAsync().join()
+
+        print("pausing simulator...")
+        self.client.simPause(True) 
     
     def run(self):
         socket_thread = SocketThread(self)
@@ -159,7 +181,8 @@ class Synchronizer:
         i = 333
         count = 0
         while True:
-            time.sleep(0.1)
+            print("Stepping airsim")
+            self.client.simContinueForFrames(1)
             print(f"Granting fsim token: {count}")
             count = count + 1
             self.grant_firesim_token()
@@ -168,6 +191,9 @@ class Synchronizer:
                 if self.get_firesim_cycles() == 0:
                     break
                 time.sleep(0.01)
+            while True:
+                if (self.client.simIsPause()):
+                    break
             print(f"data_rxqueue: {self.data_rxqueue}")
             print("Prossing firesim data data")
             while len(self.data_rxqueue) > 0:

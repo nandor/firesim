@@ -27,12 +27,12 @@ int thread_count = 0;
 // Add these functions due to overloading in the uart class
 ssize_t net_write(int fd, const void *buf, size_t count)
 {
-    return write(fd, buf, count);
+    return send(fd, buf, count, 0);
 }
 
 ssize_t net_read(int fd, void *buf, size_t count)
 {
-    return read(fd, buf, count);
+    return recv(fd, buf, count, 0);
 }
 // COSIM-CODE
 
