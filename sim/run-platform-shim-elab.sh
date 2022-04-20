@@ -1,9 +1,19 @@
 #!/bin/bash
 set -e
+
 # Generate `.classpath` file with the output of `export runtime:fullClasspath`
 # executed from the sbt shell.
 BASEDIR=$(cd $(dirname $BASH_SOURCE[0]) && pwd)
-CLASSPATH=`cat $BASEDIR/.classpath`
+CLASSPATH_FILE=$BASEDIR/.classpath
+
+if [ ! -f "$CLASSPATH_FILE" ]; then
+  java -Xmx16G -Dsbt.supershell=false -jar \
+    $BASEDIR/../target-design/chipyard/generators/rocket-chip/sbt-launch.jar \
+    --error \
+    "export runtime:fullClasspath" > $CLASSPATH_FILE
+fi
+
+CLASSPATH=`cat $CLASSPATH_FILE`
 
 TMPFIR=`mktemp /tmp/firesim-XXXXXXXX.fir`
 trap 'rm -- "$TMPFIR"' EXIT

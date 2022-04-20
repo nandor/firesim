@@ -10,3 +10,4 @@ lib/firrtl.jar
 lib-install/
 *.swp
 .bsp/
+.classpath

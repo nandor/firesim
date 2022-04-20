@@ -89,7 +89,7 @@ $(simulator_verilog).intermediate: $(FIRRTL_FILE) $(ANNO_FILE) $(SCALA_BUILDTOOL
 	)
 ifeq "$(useCIRCT)" "1"
 	@echo "Using rhodium to transform target"
-	firtool $(FIRRTL_FILE) --annotation-file $(ANNO_FILE) --ir-fir -o $(GENERATED_DIR)/rhodium_in.mlir
+	firtool $(FIRRTL_FILE) --annotation-file $(ANNO_FILE) --ir-fir -o $(GENERATED_DIR)/rhodium_in.mlir --omit-file-header
 	rhodium --generator-path=$(firesim_base_dir)/run-platform-shim-elab.sh $(GENERATED_DIR)/rhodium_in.mlir -o $(GENERATED_DIR)/rhodium_out.mlir
 	mv $(simulator_verilog) $(GENERATED_DIR)/$(BASE_FILE_NAME).sfc.sv
 	firtool $(GENERATED_DIR)/rhodium_out.mlir -o $(GENERATED_DIR)/$(BASE_FILE_NAME).mfc.sv

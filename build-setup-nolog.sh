@@ -71,6 +71,7 @@ done
 
 # before doing anything verify that you are on a release branch/tag
 set +e
+echo "X"
 tag=$(git describe --exact-match --tags)
 tag_ret_code=$?
 set -e
